@@ -41,7 +41,6 @@ const ChatBot = (() => {
   ];
 
   // ── WebSocket ─────────────────────
-  // ↓ Change this URL to match your backend host/port if needed
   let socket = null;
 
   const initWebSocket = () => {
@@ -112,30 +111,39 @@ const ChatBot = (() => {
 
   // ── Wave bars HTML ──────────────────────────
   const waveBarsHTML = (active) => {
-    const delays = [0, 0.1, 0.2, 0.15, 0.05, 0.08];
-    return delays.map((d) =>
-      `<div class="wave-bar${active ? " active" : ""}"
-        style="${active ? `animation-delay:${d}s;height:4px;` : ""}"></div>`
-    ).join("");
+    const delays      = [0, 0.08, 0.16, 0.24, 0.12, 0.04, 0.2, 0.06, 0.14, 0.1];
+    const idleHeights   = [8, 14, 18, 12, 20, 10, 16, 8, 14, 10];
+    const activeHeights = [8, 16, 22, 12, 24, 10, 20, 8, 18, 12];
+
+    return delays.map((d, i) => {
+      const h = active ? activeHeights[i] : idleHeights[i];
+      return `<div style="
+        width: 3px;
+        height: ${h}px;
+        background: rgba(255,255,255,${active ? "0.95" : "0.7"});
+        border-radius: 2px;
+        flex-shrink: 0;
+        ${active ? `animation: waveAnim 0.5s ease-in-out ${d}s infinite alternate;` : ""}
+      "></div>`;
+    }).join("");
   };
 
   // ── Check for special keywords ──────────────────────
   const getAutoResponse = (text) => {
     const lowerText = text.toLowerCase();
-    
-    // Designer question - only when backend is NOT connected
+
     if (socket && socket.readyState !== WebSocket.OPEN) {
       if (lowerText.includes("who") && lowerText.includes("design")) {
-        return "MD. KAMRUL HASAN designed me.";
+        return "Orangebd designed me.";
       }
       if (lowerText.includes("designer")) {
-        return "I was designed by MD. KAMRUL HASAN.";
+        return "I was designed by Orangebd.";
       }
       if (lowerText.includes("who create") || lowerText.includes("who made")) {
-        return "I was created by MD. KAMRUL HASAN.";
+        return "I was created by Orangebd.";
       }
     }
-    
+
     return null;
   };
 
@@ -144,20 +152,17 @@ const ChatBot = (() => {
     const question = initialQuestions.find(q => q.id === qId);
     if (!question) return;
 
-    // Add user message
     state.messages.push({ id: Date.now(), type: "user", text: question.question });
     state.showInitialQuestions = false;
     state.isBotTyping = true;
     renderMessages();
 
-    // Show answer after 500ms
     setTimeout(() => {
       state.isBotTyping = false;
       state.messages.push({ id: Date.now(), type: "bot", text: question.answer });
       renderMessages();
     }, 500);
 
-    // Also send to WebSocket if connected
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "text", message: question.question }));
     }
@@ -168,7 +173,6 @@ const ChatBot = (() => {
     const container = messagesEl();
     if (!container) return;
 
-    // Welcome message
     const welcomeDiv = document.createElement("div");
     welcomeDiv.style.cssText = "display:flex;justify-content:center;width:100%;margin-bottom:16px;padding:12px;";
     welcomeDiv.innerHTML = `
@@ -180,11 +184,10 @@ const ChatBot = (() => {
     `;
     container.appendChild(welcomeDiv);
 
-    // Question buttons
     const questionsDiv = document.createElement("div");
     questionsDiv.style.cssText = "display:flex;flex-direction:column;gap:8px;padding:0 12px 12px 12px;";
 
-    initialQuestions.forEach((q, index) => {
+    initialQuestions.forEach((q) => {
       const btn = document.createElement("button");
       btn.style.cssText = `
         padding:10px 12px;
@@ -226,7 +229,6 @@ const ChatBot = (() => {
     if (!container) return;
     container.innerHTML = "";
 
-    // Show initial questions if no messages yet
     if (state.messages.length === 0 && state.showInitialQuestions) {
       renderInitialQuestions();
       return;
@@ -236,7 +238,6 @@ const ChatBot = (() => {
       const isUser   = msg.type === "user";
       const isSystem = msg.type === "system";
 
-      // System message (e.g. "Connected to server")
       if (isSystem) {
         const row = document.createElement("div");
         row.style.cssText = "display:flex;justify-content:center;width:100%;";
@@ -257,7 +258,6 @@ const ChatBot = (() => {
         padding: ${isMobile() ? "0 4px" : "0"};
       `;
 
-      // Avatar icon
       const icon = document.createElement("div");
       icon.style.cssText = `
         width:26px; height:26px; border-radius:50%; flex-shrink:0;
@@ -267,7 +267,6 @@ const ChatBot = (() => {
       `;
       icon.textContent = isUser ? "👤" : "🤖";
 
-      // Message bubble
       const bubble = document.createElement("div");
       const isMobileView = isMobile();
       bubble.style.cssText = `
@@ -285,7 +284,6 @@ const ChatBot = (() => {
         max-width: ${isMobileView ? "280px" : "100%"};
       `;
 
-      // Voice message bubble (shows play button + waveform)
       if (msg.isVoice) {
         const audio = document.createElement("audio");
         audio.src = msg.audioUrl;
@@ -295,7 +293,7 @@ const ChatBot = (() => {
         media.audioEls[msg.id] = audio;
 
         bubble.innerHTML = `
-          <div style="display:flex;align-items:center;gap:${isMobile() ? "5px" : "7px"};height:36px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:${isMobile() ? "5px" : "7px"};height:36px;">
             <button id="playbtn-${msg.id}" onclick="ChatBot.togglePlay(${msg.id})"
               style="width:26px;height:26px;border-radius:50%;border:none;
                 background:rgba(255,255,255,0.25);color:white;cursor:pointer;
@@ -303,7 +301,7 @@ const ChatBot = (() => {
               <i class="fa-solid fa-play"></i>
             </button>
             <div id="wavebox-${msg.id}"
-              style="display:flex;align-items:center;gap:2px;width:${isMobile() ? "45px" : "52px"};height:20px;overflow:hidden;flex-shrink:0;">
+              style="display:flex;align-items:center;gap:2px;width:${isMobile() ? "60px" : "70px"};height:26px;overflow:hidden;flex-shrink:0;">
               ${waveBarsHTML(false)}
             </div>
             <span style="font-size:${isMobile() ? "10px" : "11px"};opacity:0.75;flex-shrink:0;white-space:nowrap;">
@@ -320,7 +318,6 @@ const ChatBot = (() => {
       container.appendChild(row);
     });
 
-    // Typing indicator shown while waiting for bot response
     if (state.isBotTyping) {
       const typingRow = document.createElement("div");
       typingRow.style.cssText = `display:flex;align-items:flex-end;gap:6px;margin-left:${isMobile() ? "8px" : "32px"};`;
@@ -376,7 +373,6 @@ const ChatBot = (() => {
     state.showInitialQuestions = false;
     renderMessages();
 
-    // Check for auto-response (only if backend is NOT connected)
     const autoResponse = getAutoResponse(text);
     if (autoResponse) {
       setTimeout(() => {
@@ -387,7 +383,6 @@ const ChatBot = (() => {
       return;
     }
 
-    // Send to WebSocket
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "text", message: text }));
     } else {
@@ -410,12 +405,12 @@ const ChatBot = (() => {
     if (isRec) {
       recTime().textContent = formatTime(0);
       recWaves().innerHTML  = [0, 0.1, 0.2, 0.15, 0.05, 0.08]
-        .map((d) => `<div class="rec-wave-bar" style="animation-delay:${d}s;height:4px;"></div>`)
+        .map((d) => `<div class="rec-wave-bar" style="animation-delay:${d}s;height:8px;"></div>`)
         .join("");
     }
   };
 
-  // ── Stop recording — sends full blob over WebSocket ───────────
+  // ── Stop recording ───────────────────────────────────────────
   const stopRecording = () => {
     clearInterval(media.timer);
     const capturedDuration = media.timeRef;
@@ -425,7 +420,6 @@ const ChatBot = (() => {
         if (media.chunks.length === 0) return;
         const blob = new Blob(media.chunks, { type: "audio/webm" });
 
-        // Show a local playable voice bubble for the user
         const url = URL.createObjectURL(blob);
         state.messages.push({
           id: Date.now(), type: "user",
@@ -434,9 +428,8 @@ const ChatBot = (() => {
         state.showInitialQuestions = false;
         renderMessages();
 
-        // Send raw binary audio blob to the backend STT endpoint
         if (socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(blob);          // ← binary audio to backend
+          socket.send(blob);
           state.isBotTyping = true;
           renderMessages();
         } else {
@@ -478,7 +471,6 @@ const ChatBot = (() => {
       media.timeRef        = 0;
       updateRecordingUI();
 
-      // Tick the recording timer every second
       media.timer = setInterval(() => {
         media.timeRef++;
         state.recordingTime++;
@@ -505,13 +497,11 @@ const ChatBot = (() => {
     if (!audio) return;
 
     if (state.playingId === msgId) {
-      // Pause currently playing message
       audio.pause();
       state.playingId = null;
       if (btn)     btn.innerHTML     = '<i class="fa-solid fa-play"></i>';
       if (waveBox) waveBox.innerHTML = waveBarsHTML(false);
     } else {
-      // Stop any other playing message first
       if (state.playingId) {
         const p  = media.audioEls[state.playingId] || document.getElementById(`audio-${state.playingId}`);
         const pb = document.getElementById(`playbtn-${state.playingId}`);
@@ -537,7 +527,6 @@ const ChatBot = (() => {
 
   // ── Drag to reposition (desktop only) ───────────────────────
   document.addEventListener("DOMContentLoaded", () => {
-    // Initialise WebSocket on page load
     initWebSocket();
 
     const input = $("textInput");
@@ -546,7 +535,6 @@ const ChatBot = (() => {
     const header = $("chatHeader");
     if (!header) return;
 
-    // Mouse drag
     header.addEventListener("mousedown", (e) => {
       if (isMobile()) return;
       if (e.target.closest("button")) return;
@@ -570,7 +558,6 @@ const ChatBot = (() => {
       header.style.cursor = "grab";
     });
 
-    // Touch drag (tablet/desktop touch screens)
     header.addEventListener("touchstart", (e) => {
       if (isMobile()) return;
       if (e.target.closest("button")) return;
@@ -590,7 +577,6 @@ const ChatBot = (() => {
 
     window.addEventListener("touchend", () => { state.dragging = false; });
 
-    // Keep modal in bounds on resize
     window.addEventListener("resize", () => {
       const m = modal();
       if (m.style.display === "none") return;

@@ -13,8 +13,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @keyframes waveAnim {
-      0%, 100% { height: 4px; }
-      50%       { height: 18px; }
+      0%   { transform: scaleY(0.4); }
+      100% { transform: scaleY(1); }
     }
     @keyframes typingDot {
       0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
@@ -36,6 +36,10 @@
     @keyframes fadeSlideIn {
       from { opacity: 0; transform: translateY(10px) scale(0.97); }
       to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes recPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.85); }
     }
 
     .chat-scroll::-webkit-scrollbar { display: none; }
@@ -67,11 +71,15 @@
     .chat-modal-anim { animation: fadeSlideIn 0.25s ease; }
 
     .wave-bar {
-      width: 3px; border-radius: 2px;
+      width: 3px;
+      border-radius: 2px;
       background: rgba(255,255,255,0.85);
-      flex-shrink: 0; height: 4px;
+      flex-shrink: 0;
+      transform-origin: center;
     }
-    .wave-bar.active { animation: waveAnim 0.85s ease-in-out infinite; }
+    .wave-bar.active {
+      animation: waveAnim 0.5s ease-in-out infinite alternate;
+    }
 
     .rec-wave-bar {
       width: 3px; border-radius: 2px;
@@ -88,7 +96,25 @@
     .rec-dot {
       width: 8px; height: 8px; border-radius: 50%;
       background: #ef4444; flex-shrink: 0;
-      animation: typingDot 1s ease-in-out infinite;
+      animation: recPulse 1.2s ease-in-out infinite;
+    }
+
+    /* ── Input area fixed height ── */
+    #inputArea {
+      height: 60px;
+      min-height: 60px;
+      max-height: 60px;
+    }
+
+    /* ── Recording bar fixed height to match text input ── */
+    #recBar {
+      height: 38px;
+      min-height: 38px;
+    }
+
+    #textInput {
+      height: 38px;
+      min-height: 38px;
     }
 
     @media (max-width: 480px) {
@@ -96,6 +122,12 @@
         left: 0 !important; top: 0 !important;
         width: 100vw !important; height: 100dvh !important;
         border-radius: 0 !important;
+      }
+      #inputArea {
+        height: 64px;
+        min-height: 64px;
+        max-height: 64px;
+        padding-bottom: env(safe-area-inset-bottom, 8px);
       }
     }
   </style>
@@ -137,7 +169,6 @@
           style="background: rgba(255,255,255,0.25);">🤖</div>
         <div>
           <div class="font-bold text-white text-sm tracking-wide">Orangebd Smart Assistant</div>
-          <!-- WebSocket status indicator -->
           <div id="status" class="text-xs text-yellow-300">● Connecting...</div>
         </div>
       </div>
@@ -157,27 +188,29 @@
       style="background: #0f172a;">
     </div>
 
-    <!-- Input Area -->
-    <div class="flex items-center gap-1.5 px-2.5 py-2 flex-shrink-0" style="background: #1e293b;">
+    <!-- Input Area — fixed height, never shrinks -->
+    <div id="inputArea"
+      class="flex items-center gap-1.5 px-2.5 flex-shrink-0"
+      style="background: #1e293b; border-top: 1px solid rgba(255,102,0,0.15);">
 
       <!-- Text input -->
       <input
         id="textInput"
         type="text"
         placeholder="Type message..."
-        class="flex-1 px-3.5 py-2 rounded-full text-sm outline-none border-0 min-w-0"
+        class="flex-1 px-3.5 rounded-full text-sm outline-none border-0 min-w-0"
         style="background: #f1f5f9; color: #1e293b; cursor: text;"
         onkeydown="ChatBot.handleKey(event)"
       />
 
       <!-- Recording bar (hidden by default) -->
       <div id="recBar"
-        class="flex-1 items-center gap-1.5 px-3 py-1.5 rounded-full min-w-0 hidden"
+        class="flex-1 items-center gap-1.5 px-3 rounded-full min-w-0 hidden overflow-hidden"
         style="background: #0f172a;">
-        <div class="rec-dot"></div>
+        <div class="rec-dot flex-shrink-0"></div>
         <span id="recTime" class="text-xs font-mono flex-shrink-0" style="color: #f87171;">0:00</span>
-        <div id="recWaves" class="flex items-end gap-0.5"></div>
-        <span class="text-xs ml-auto flex-shrink-0" style="color: #475569;">tap ➤ to send</span>
+        <div id="recWaves" class="flex items-center gap-0.5 flex-1 overflow-hidden"></div>
+        <span class="text-xs flex-shrink-0" style="color: #475569;">➤ to send</span>
       </div>
 
       <!-- Stop button (hidden by default) -->
