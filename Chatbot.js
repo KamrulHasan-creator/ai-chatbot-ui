@@ -96,7 +96,9 @@ const ChatBot = (() => {
   const micBtn     = () => $("micBtn");
 
   // ── Helpers ─────────────────────────
-  const isMobile = () => window.innerWidth <= 480;
+  // Mobile: phones & tablets under 768px
+  const isMobile    = () => window.innerWidth <= 768;
+  const isSmallPhone = () => window.innerWidth <= 380;
 
   const formatTime = (sec) => {
     const m = Math.floor(sec / 60);
@@ -111,7 +113,7 @@ const ChatBot = (() => {
 
   // ── Wave bars HTML ──────────────────────────
   const waveBarsHTML = (active) => {
-    const delays      = [0, 0.08, 0.16, 0.24, 0.12, 0.04, 0.2, 0.06, 0.14, 0.1];
+    const delays        = [0, 0.08, 0.16, 0.24, 0.12, 0.04, 0.2, 0.06, 0.14, 0.1];
     const idleHeights   = [8, 14, 18, 12, 20, 10, 16, 8, 14, 10];
     const activeHeights = [8, 16, 22, 12, 24, 10, 20, 8, 18, 12];
 
@@ -173,47 +175,79 @@ const ChatBot = (() => {
     const container = messagesEl();
     if (!container) return;
 
+    const mob   = isMobile();
+    const small = isSmallPhone();
+
     const welcomeDiv = document.createElement("div");
-    welcomeDiv.style.cssText = "display:flex;justify-content:center;width:100%;margin-bottom:16px;padding:12px;";
+    welcomeDiv.style.cssText = `
+      display:flex;
+      justify-content:center;
+      width:100%;
+      margin-bottom:${mob ? "12px" : "16px"};
+      padding:${mob ? "10px 8px" : "12px"};
+      box-sizing:border-box;
+    `;
     welcomeDiv.innerHTML = `
-      <div style="text-align:center;color:#cbd5e1;font-size:13px;">
-        <div style="font-size:32px;margin-bottom:8px;">👋</div>
-        <div style="font-weight:700;margin-bottom:6px;font-size:14px;color:#e2e8f0;">Welcome!</div>
-        <div style="font-size:12px;color:#94a3b8;">Hello! I'm Orangebd Smart Assistant. How can I help you today?</div>
+      <div style="text-align:center;color:#cbd5e1;">
+        <div style="font-size:${small ? "26px" : mob ? "28px" : "32px"};margin-bottom:6px;">👋</div>
+        <div style="font-weight:700;margin-bottom:5px;font-size:${small ? "13px" : "14px"};color:#e2e8f0;">Welcome!</div>
+        <div style="font-size:${small ? "11px" : "12px"};color:#94a3b8;line-height:1.4;">
+          Hello! I'm Orangebd Smart Assistant. How can I help you today?
+        </div>
       </div>
     `;
     container.appendChild(welcomeDiv);
 
     const questionsDiv = document.createElement("div");
-    questionsDiv.style.cssText = "display:flex;flex-direction:column;gap:8px;padding:0 12px 12px 12px;";
+    questionsDiv.style.cssText = `
+      display:flex;
+      flex-direction:column;
+      gap:${mob ? "7px" : "8px"};
+      padding:0 ${mob ? "8px" : "12px"} ${mob ? "8px" : "12px"};
+      box-sizing:border-box;
+    `;
 
     initialQuestions.forEach((q) => {
       const btn = document.createElement("button");
       btn.style.cssText = `
-        padding:10px 12px;
+        padding:${small ? "9px 10px" : mob ? "10px 11px" : "10px 12px"};
         border:1px solid rgba(255,102,0,0.4);
         border-radius:10px;
         background:rgba(255,102,0,0.1);
         color:#e2e8f0;
-        font-size:12px;
+        font-size:${small ? "11px" : "12px"};
         cursor:pointer;
         text-align:left;
         line-height:1.4;
         transition:all 0.2s ease;
         font-weight:500;
+        width:100%;
+        -webkit-tap-highlight-color:transparent;
+        touch-action:manipulation;
       `;
 
       btn.addEventListener("mouseenter", () => {
-        btn.style.background = "rgba(255,102,0,0.2)";
+        btn.style.background  = "rgba(255,102,0,0.2)";
         btn.style.borderColor = "rgba(255,102,0,0.6)";
-        btn.style.transform = "translateX(4px)";
+        btn.style.transform   = "translateX(4px)";
+      });
+      btn.addEventListener("mouseleave", () => {
+        btn.style.background  = "rgba(255,102,0,0.1)";
+        btn.style.borderColor = "rgba(255,102,0,0.4)";
+        btn.style.transform   = "translateX(0)";
       });
 
-      btn.addEventListener("mouseleave", () => {
-        btn.style.background = "rgba(255,102,0,0.1)";
-        btn.style.borderColor = "rgba(255,102,0,0.4)";
-        btn.style.transform = "translateX(0)";
-      });
+      // Touch feedback
+      btn.addEventListener("touchstart", () => {
+        btn.style.background  = "rgba(255,102,0,0.2)";
+        btn.style.borderColor = "rgba(255,102,0,0.6)";
+      }, { passive: true });
+      btn.addEventListener("touchend", () => {
+        setTimeout(() => {
+          btn.style.background  = "rgba(255,102,0,0.1)";
+          btn.style.borderColor = "rgba(255,102,0,0.4)";
+        }, 150);
+      }, { passive: true });
 
       btn.textContent = q.question;
       btn.onclick = () => handleQuestionClick(q.id);
@@ -234,54 +268,74 @@ const ChatBot = (() => {
       return;
     }
 
+    const mob   = isMobile();
+    const small = isSmallPhone();
+
+    // Responsive sizing tokens
+    const iconSize   = small ? "22px" : mob ? "24px" : "26px";
+    const iconFont   = small ? "11px" : mob ? "12px" : "13px";
+    const bubbleFont = small ? "11px" : mob ? "12px" : "13px";
+    const padV       = small ? "7px"  : mob ? "8px"  : "9px";
+    const padH       = small ? "9px"  : mob ? "10px" : "12px";
+    const rowPad     = small ? "6px"  : mob ? "8px"  : "12px";
+    const rowGap     = small ? "5px"  : mob ? "6px"  : "8px";
+    const rowMB      = small ? "5px"  : mob ? "6px"  : "8px";
+    const maxW       = small ? "calc(100vw - 68px)" : mob ? "calc(100vw - 76px)" : "60%";
+
     state.messages.forEach((msg) => {
       const isUser   = msg.type === "user";
       const isSystem = msg.type === "system";
 
       if (isSystem) {
         const row = document.createElement("div");
-        row.style.cssText = "display:flex;justify-content:center;width:100%;";
-        row.innerHTML = `<div style="font-size:12px;color:#94a3b8;text-align:center;">${msg.text}</div>`;
+        row.style.cssText = "display:flex;justify-content:center;width:100%;padding:4px 0;";
+        row.innerHTML = `<div style="font-size:11px;color:#94a3b8;text-align:center;">${msg.text}</div>`;
         container.appendChild(row);
         return;
       }
 
       const row = document.createElement("div");
       row.style.cssText = `
-        display: flex;
-        flex-direction: ${isUser ? "row-reverse" : "row"};
-        align-items: flex-end;
-        gap: 6px;
-        align-self: ${isUser ? "flex-end" : "flex-start"};
-        max-width: ${isMobile() ? "95%" : "88%"};
-        margin: ${isMobile() ? "0 auto" : "0"};
-        padding: ${isMobile() ? "0 4px" : "0"};
+        display:flex;
+        align-items:flex-end;
+        gap:${rowGap};
+        width:100%;
+        padding:0 ${rowPad};
+        margin-bottom:${rowMB};
+        justify-content:${isUser ? "flex-end" : "flex-start"};
+        box-sizing:border-box;
       `;
 
       const icon = document.createElement("div");
       icon.style.cssText = `
-        width:26px; height:26px; border-radius:50%; flex-shrink:0;
-        display:flex; align-items:center; justify-content:center;
-        font-size:13px; margin-bottom:2px;
+        width:${iconSize};
+        height:${iconSize};
+        border-radius:50%;
+        flex-shrink:0;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:${iconFont};
+        margin-bottom:2px;
         background:${isUser ? "linear-gradient(135deg,#ff6600,#cc4400)" : "#334155"};
       `;
       icon.textContent = isUser ? "👤" : "🤖";
 
       const bubble = document.createElement("div");
-      const isMobileView = isMobile();
       bubble.style.cssText = `
-        padding: ${isMobileView ? "8px 10px" : "9px 12px"};
-        border-radius: 18px;
-        border-bottom-right-radius: ${isUser ? "5px" : "18px"};
-        border-bottom-left-radius: ${!isUser ? "5px" : "18px"};
-        font-size: ${isMobileView ? "12px" : "13px"};
-        color: white;
-        line-height: 1.5;
-        word-break: break-word;
-        background: ${isUser
-          ? "linear-gradient(135deg,#ff6600,#cc4400)"
-          : "#334155"};
-        max-width: ${isMobileView ? "280px" : "100%"};
+        padding:${padV} ${padH};
+        border-radius:18px;
+        border-bottom-right-radius:${isUser ? "5px" : "18px"};
+        border-bottom-left-radius:${!isUser ? "5px" : "18px"};
+        font-size:${bubbleFont};
+        color:white;
+        line-height:1.5;
+        word-break:break-word;
+        overflow-wrap:break-word;
+        background:${isUser ? "linear-gradient(135deg,#ff6600,#cc4400)" : "#334155"};
+        max-width:${maxW};
+        flex-shrink:1;
+        -webkit-tap-highlight-color:transparent;
       `;
 
       if (msg.isVoice) {
@@ -292,19 +346,26 @@ const ChatBot = (() => {
         document.body.appendChild(audio);
         media.audioEls[msg.id] = audio;
 
+        const waveW   = small ? "48px" : mob ? "54px" : "70px";
+        const btnSize = small ? "22px" : mob ? "24px" : "26px";
+        const tFont   = small ? "9px"  : mob ? "10px" : "11px";
+        const hBox    = small ? "28px" : "36px";
+
         bubble.innerHTML = `
-          <div style="display:flex;align-items:center;gap:${isMobile() ? "5px" : "7px"};height:36px;">
+          <div style="display:flex;align-items:center;gap:${small ? "4px" : "6px"};height:${hBox};">
             <button id="playbtn-${msg.id}" onclick="ChatBot.togglePlay(${msg.id})"
-              style="width:26px;height:26px;border-radius:50%;border:none;
+              style="width:${btnSize};height:${btnSize};border-radius:50%;border:none;
                 background:rgba(255,255,255,0.25);color:white;cursor:pointer;
-                font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                font-size:${small ? "9px" : "11px"};display:flex;align-items:center;
+                justify-content:center;flex-shrink:0;
+                -webkit-tap-highlight-color:transparent;touch-action:manipulation;">
               <i class="fa-solid fa-play"></i>
             </button>
             <div id="wavebox-${msg.id}"
-              style="display:flex;align-items:center;gap:2px;width:${isMobile() ? "60px" : "70px"};height:26px;overflow:hidden;flex-shrink:0;">
+              style="display:flex;align-items:center;gap:2px;width:${waveW};height:${small ? "22px" : "26px"};overflow:hidden;flex-shrink:0;">
               ${waveBarsHTML(false)}
             </div>
-            <span style="font-size:${isMobile() ? "10px" : "11px"};opacity:0.75;flex-shrink:0;white-space:nowrap;">
+            <span style="font-size:${tFont};opacity:0.75;flex-shrink:0;white-space:nowrap;">
               ${formatTime(msg.duration || 0)}
             </span>
           </div>
@@ -313,16 +374,33 @@ const ChatBot = (() => {
         bubble.textContent = msg.text;
       }
 
-      row.appendChild(icon);
-      row.appendChild(bubble);
+      // User: bubble → icon (right side)
+      // Bot:  icon → bubble (left side)
+      if (isUser) {
+        row.appendChild(bubble);
+        row.appendChild(icon);
+      } else {
+        row.appendChild(icon);
+        row.appendChild(bubble);
+      }
+
       container.appendChild(row);
     });
 
     if (state.isBotTyping) {
       const typingRow = document.createElement("div");
-      typingRow.style.cssText = `display:flex;align-items:flex-end;gap:6px;margin-left:${isMobile() ? "8px" : "32px"};`;
+      typingRow.style.cssText = `
+        display:flex;
+        align-items:flex-end;
+        gap:${rowGap};
+        padding:0 ${rowPad};
+        margin-bottom:${rowMB};
+        width:100%;
+        justify-content:flex-start;
+        box-sizing:border-box;
+      `;
       typingRow.innerHTML = `
-        <div style="display:flex;align-items:flex-end;gap:4px;padding:10px 12px;
+        <div style="display:flex;align-items:flex-end;gap:4px;padding:${padV} ${padH};
           border-radius:18px;border-bottom-left-radius:5px;background:#334155;">
           <div class="typing-dot" style="animation-delay:0s;"></div>
           <div class="typing-dot" style="animation-delay:0.15s;"></div>
@@ -339,17 +417,24 @@ const ChatBot = (() => {
   const open = () => {
     const m = modal();
     if (!isMobile()) {
+      // Desktop: floating widget
       state.pos = { x: window.innerWidth - 360, y: window.innerHeight - 560 };
-      m.style.left   = state.pos.x + "px";
-      m.style.top    = state.pos.y + "px";
-      m.style.width  = "340px";
-      m.style.height = "520px";
+      m.style.left         = state.pos.x + "px";
+      m.style.top          = state.pos.y + "px";
+      m.style.width        = "340px";
+      m.style.height       = "520px";
+      m.style.borderRadius = "";
+      m.style.position     = "fixed";
     } else {
+      // Mobile / tablet: full screen
       m.style.width        = "100%";
       m.style.height       = "100%";
       m.style.left         = "0px";
       m.style.top          = "0px";
       m.style.borderRadius = "0px";
+      m.style.position     = "fixed";
+      // Prevent background scroll
+      document.body.style.overflow = "hidden";
     }
     m.style.display = "flex";
     toggleBtn().style.display = "none";
@@ -359,6 +444,8 @@ const ChatBot = (() => {
   const close = () => {
     modal().style.display     = "none";
     toggleBtn().style.display = "flex";
+    // Restore scroll
+    document.body.style.overflow = "";
   };
 
   // ── Send text via WebSocket ──────────────────────
@@ -372,6 +459,9 @@ const ChatBot = (() => {
     state.isBotTyping  = true;
     state.showInitialQuestions = false;
     renderMessages();
+
+    // Dismiss virtual keyboard on mobile after send
+    if (isMobile()) textInput().blur();
 
     const autoResponse = getAutoResponse(text);
     if (autoResponse) {
@@ -397,10 +487,10 @@ const ChatBot = (() => {
   // ── Recording UI toggle ────────────
   const updateRecordingUI = () => {
     const isRec = state.isRecording;
-    textInput().style.display = isRec ? "none"  : "block";
-    recBar().style.display    = isRec ? "flex"   : "none";
-    stopWrap().style.display  = isRec ? "flex"   : "none";
-    micBtn().style.display    = isRec ? "none"   : "flex";
+    textInput().style.display = isRec ? "none" : "block";
+    recBar().style.display    = isRec ? "flex"  : "none";
+    stopWrap().style.display  = isRec ? "flex"  : "none";
+    micBtn().style.display    = isRec ? "none"  : "flex";
 
     if (isRec) {
       recTime().textContent = formatTime(0);
@@ -419,8 +509,8 @@ const ChatBot = (() => {
       media.recorder.onstop = () => {
         if (media.chunks.length === 0) return;
         const blob = new Blob(media.chunks, { type: "audio/webm" });
+        const url  = URL.createObjectURL(blob);
 
-        const url = URL.createObjectURL(blob);
         state.messages.push({
           id: Date.now(), type: "user",
           isVoice: true, audioUrl: url, duration: capturedDuration,
@@ -447,7 +537,7 @@ const ChatBot = (() => {
 
     state.isRecording   = false;
     state.recordingTime = 0;
-    media.timeRef        = 0;
+    media.timeRef       = 0;
     updateRecordingUI();
   };
 
@@ -468,7 +558,7 @@ const ChatBot = (() => {
       recorder.start();
       state.isRecording   = true;
       state.recordingTime = 0;
-      media.timeRef        = 0;
+      media.timeRef       = 0;
       updateRecordingUI();
 
       media.timer = setInterval(() => {
@@ -535,11 +625,12 @@ const ChatBot = (() => {
     const header = $("chatHeader");
     if (!header) return;
 
+    // Mouse drag – desktop only
     header.addEventListener("mousedown", (e) => {
       if (isMobile()) return;
       if (e.target.closest("button")) return;
-      state.dragging    = true;
-      state.dragOffset  = { x: e.clientX - state.pos.x, y: e.clientY - state.pos.y };
+      state.dragging   = true;
+      state.dragOffset = { x: e.clientX - state.pos.x, y: e.clientY - state.pos.y };
       header.style.cursor = "grabbing";
       e.preventDefault();
     });
@@ -547,7 +638,7 @@ const ChatBot = (() => {
     window.addEventListener("mousemove", (e) => {
       if (!state.dragging) return;
       state.pos = { x: e.clientX - state.dragOffset.x, y: e.clientY - state.dragOffset.y };
-      const m   = modal();
+      const m = modal();
       m.style.left = state.pos.x + "px";
       m.style.top  = state.pos.y + "px";
     });
@@ -558,6 +649,7 @@ const ChatBot = (() => {
       header.style.cursor = "grab";
     });
 
+    // Touch drag – desktop tablets only (skipped on mobile)
     header.addEventListener("touchstart", (e) => {
       if (isMobile()) return;
       if (e.target.closest("button")) return;
@@ -577,6 +669,7 @@ const ChatBot = (() => {
 
     window.addEventListener("touchend", () => { state.dragging = false; });
 
+    // Resize handler – orientation change, keyboard appear/disappear
     window.addEventListener("resize", () => {
       const m = modal();
       if (m.style.display === "none") return;
@@ -588,14 +681,27 @@ const ChatBot = (() => {
         m.style.top          = "0px";
         m.style.borderRadius = "0px";
       } else {
-        state.pos.x  = Math.max(0, Math.min(state.pos.x, window.innerWidth  - 340));
-        state.pos.y  = Math.max(0, Math.min(state.pos.y, window.innerHeight - 520));
-        m.style.left = state.pos.x + "px";
-        m.style.top  = state.pos.y + "px";
+        state.pos.x = Math.max(0, Math.min(state.pos.x, window.innerWidth  - 340));
+        state.pos.y = Math.max(0, Math.min(state.pos.y, window.innerHeight - 520));
+        m.style.left   = state.pos.x + "px";
+        m.style.top    = state.pos.y + "px";
         m.style.width  = "340px";
         m.style.height = "520px";
       }
+
+      // Recalculate bubble sizes on resize / rotation
+      renderMessages();
     });
+
+    // iOS Safari – shrink modal when virtual keyboard opens
+    if ("visualViewport" in window) {
+      window.visualViewport.addEventListener("resize", () => {
+        const m = modal();
+        if (m.style.display === "none" || !isMobile()) return;
+        m.style.height = window.visualViewport.height + "px";
+        scrollToBottom();
+      });
+    }
   });
 
   // ── Public API ──────────────
