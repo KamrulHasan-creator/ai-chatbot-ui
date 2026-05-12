@@ -21,22 +21,31 @@ const ChatBot = (() => {
     audioEls: {},
   };
 
-  // ── Initial Questions Data ──────────────────────
+  // ── Initial Questions Data (4 questions, always shown) ──────────────────────
   const initialQuestions = [
     {
       id: 1,
-      question: "Experience & Team",
-      answer: "Orangebd has 16+ years of experience and a team of 80+ people, including 60+ software development professionals, delivering user-friendly and comprehensive digital solutions.",
+      question: "What is Orangebd?",
+      answer:
+        "Orangebd is a Bangladesh-based software and digital transformation company that develops solutions for e-Governance, education, judiciary, and enterprise systems.",
     },
     {
       id: 2,
-      question: "Our Services",
-      answer: "Orangebd provides e-governance platforms, e-learning platforms, digital archiving platforms, portal frameworks, web-based solution development, customized software solutions, and online news portal frameworks.",
+      question: "What services does Orangebd provide?",
+      answer:
+        "Orangebd provides web development, mobile app development, e-Government systems, learning management systems (LMS), and large-scale enterprise software solutions.",
     },
     {
       id: 3,
-      question: "Contact & Credentials",
-      answer: "Orangebd is a member of BASIS, BCS, DCCI, and e-CAB, and it is ISO 9001:2015 certified. Contact: info@orangebd.com | www.orangebd.com",
+      question: "Does Orangebd work only in Bangladesh?",
+      answer:
+        "No. Orangebd also works internationally, delivering digital government and software solutions in countries such as the Philippines, Gambia, and others.",
+    },
+    {
+      id: 4,
+      question: "How long has Orangebd been operating?",
+      answer:
+        "Orangebd has been operating since 2005 and has over 20 years of experience in developing large-scale government and private sector software projects",
     },
   ];
 
@@ -96,7 +105,6 @@ const ChatBot = (() => {
   const micBtn     = () => $("micBtn");
 
   // ── Helpers ─────────────────────────
-  // Mobile: phones & tablets under 768px
   const isMobile    = () => window.innerWidth <= 768;
   const isSmallPhone = () => window.innerWidth <= 380;
 
@@ -134,28 +142,26 @@ const ChatBot = (() => {
   const getAutoResponse = (text) => {
     const lowerText = text.toLowerCase();
 
-    if (socket && socket.readyState !== WebSocket.OPEN) {
-      if (lowerText.includes("who") && lowerText.includes("design")) {
-        return "Orangebd designed me.";
-      }
-      if (lowerText.includes("designer")) {
-        return "I was designed by Orangebd.";
-      }
-      if (lowerText.includes("who create") || lowerText.includes("who made")) {
-        return "I was created by Orangebd.";
-      }
+    if (lowerText.includes("who") && lowerText.includes("design")) {
+      return "Orangebd designed me.";
+    }
+    if (lowerText.includes("designer")) {
+      return "I was designed by Orangebd.";
+    }
+    if (lowerText.includes("who create") || lowerText.includes("who made")) {
+      return "I was created by Orangebd.";
     }
 
     return null;
   };
 
   // ── Handle Initial Question Click ──────────────────────
+  // Always shows local answer (works online AND offline)
   const handleQuestionClick = (qId) => {
-    const question = initialQuestions.find(q => q.id === qId);
+    const question = initialQuestions.find((q) => q.id === qId);
     if (!question) return;
 
     state.messages.push({ id: Date.now(), type: "user", text: question.question });
-    state.showInitialQuestions = false;
     state.isBotTyping = true;
     renderMessages();
 
@@ -165,12 +171,13 @@ const ChatBot = (() => {
       renderMessages();
     }, 500);
 
+    // Optionally also send to server if connected
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "text", message: question.question }));
     }
   };
 
-  // ── Render Initial Questions ──────────────────────
+  // ── Render welcome bubble inside messages ──────────────────────
   const renderInitialQuestions = () => {
     const container = messagesEl();
     if (!container) return;
@@ -178,83 +185,134 @@ const ChatBot = (() => {
     const mob   = isMobile();
     const small = isSmallPhone();
 
-    const welcomeDiv = document.createElement("div");
-    welcomeDiv.style.cssText = `
-      display:flex;
-      justify-content:center;
-      width:100%;
-      margin-bottom:${mob ? "12px" : "16px"};
-      padding:${mob ? "10px 8px" : "12px"};
-      box-sizing:border-box;
-    `;
-    welcomeDiv.innerHTML = `
-      <div style="text-align:center;color:#cbd5e1;">
-        <div style="font-size:${small ? "26px" : mob ? "28px" : "32px"};margin-bottom:6px;">👋</div>
-        <div style="font-weight:700;margin-bottom:5px;font-size:${small ? "13px" : "14px"};color:#e2e8f0;">Welcome!</div>
-        <div style="font-size:${small ? "11px" : "12px"};color:#94a3b8;line-height:1.4;">
-          Hello! I'm Orangebd Smart Assistant. How can I help you today?
-        </div>
-      </div>
-    `;
-    container.appendChild(welcomeDiv);
+    const iconSize   = small ? "22px" : mob ? "24px" : "26px";
+    const iconFont   = small ? "11px" : mob ? "12px" : "13px";
+    const bubbleFont = small ? "11px" : mob ? "12px" : "13px";
+    const padV       = small ? "7px"  : mob ? "8px"  : "9px";
+    const padH       = small ? "9px"  : mob ? "10px" : "12px";
+    const rowPad     = small ? "6px"  : mob ? "8px"  : "12px";
+    const rowGap     = small ? "5px"  : mob ? "6px"  : "8px";
+    const rowMB      = small ? "8px"  : mob ? "10px" : "12px";
+    const maxW       = small ? "calc(100vw - 68px)" : mob ? "calc(100vw - 76px)" : "85%";
 
-    const questionsDiv = document.createElement("div");
-    questionsDiv.style.cssText = `
+    // ── Bot welcome bubble ──────────────────────
+    const welcomeRow = document.createElement("div");
+    welcomeRow.style.cssText = `
       display:flex;
-      flex-direction:column;
-      gap:${mob ? "7px" : "8px"};
-      padding:0 ${mob ? "8px" : "12px"} ${mob ? "8px" : "12px"};
+      align-items:flex-end;
+      gap:${rowGap};
+      width:100%;
+      padding:0 ${rowPad};
+      margin-bottom:${rowMB};
+      justify-content:flex-start;
       box-sizing:border-box;
+    `;
+
+    const icon = document.createElement("div");
+    icon.style.cssText = `
+      width:${iconSize};height:${iconSize};border-radius:50%;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      font-size:${iconFont};margin-bottom:2px;background:#334155;
+    `;
+    icon.textContent = "🤖";
+
+    const bubble = document.createElement("div");
+    bubble.style.cssText = `
+      padding:${padV} ${padH};
+      border-radius:18px;
+      border-bottom-left-radius:5px;
+      font-size:${bubbleFont};
+      color:white;
+      line-height:1.5;
+      word-break:break-word;
+      overflow-wrap:break-word;
+      background:#334155;
+      max-width:${maxW};
+      flex-shrink:1;
+    `;
+    bubble.textContent =
+      "Welcome to Orangebd!👋 I’m your virtual assistant here to help you with information about our services, solutions, and projects.Feel free to ask me anything or choose a quick question below to get started.";
+
+    welcomeRow.appendChild(icon);
+    welcomeRow.appendChild(bubble);
+    container.appendChild(welcomeRow);
+  };
+
+  // ── Render fixed question strip BELOW input bar (at very bottom) ──────────────────────
+  const renderQuestionStrip = () => {
+    // Remove existing strip if any
+    const existing = $("questionStrip");
+    if (existing) existing.remove();
+
+    const mob   = isMobile();
+    const small = isSmallPhone();
+
+    const m = modal();
+    if (!m || m.style.display === "none") return;
+
+    const strip = document.createElement("div");
+    strip.id = "questionStrip";
+    strip.style.cssText = `
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:${small ? "5px" : "6px"};
+      padding:${small ? "6px 8px 8px" : mob ? "7px 10px 10px" : "8px 12px 12px"};
+      border-top:1px solid rgba(255,255,255,0.06);
+      background:rgba(15,23,42,0.98);
+      box-sizing:border-box;
+      flex-shrink:0;
     `;
 
     initialQuestions.forEach((q) => {
       const btn = document.createElement("button");
       btn.style.cssText = `
-        padding:${small ? "9px 10px" : mob ? "10px 11px" : "10px 12px"};
+        padding:${small ? "5px 7px" : "6px 8px"};
         border:1px solid rgba(255,102,0,0.4);
-        border-radius:10px;
-        background:rgba(255,102,0,0.1);
+        border-radius:8px;
+        background:rgba(255,102,0,0.08);
         color:#e2e8f0;
-        font-size:${small ? "11px" : "12px"};
+        font-size:${small ? "9px" : "10px"};
         cursor:pointer;
         text-align:left;
-        line-height:1.4;
-        transition:all 0.2s ease;
+        line-height:1.3;
+        transition:all 0.18s ease;
         font-weight:500;
         width:100%;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
         -webkit-tap-highlight-color:transparent;
         touch-action:manipulation;
       `;
 
       btn.addEventListener("mouseenter", () => {
         btn.style.background  = "rgba(255,102,0,0.2)";
-        btn.style.borderColor = "rgba(255,102,0,0.6)";
-        btn.style.transform   = "translateX(4px)";
+        btn.style.borderColor = "rgba(255,102,0,0.7)";
       });
       btn.addEventListener("mouseleave", () => {
-        btn.style.background  = "rgba(255,102,0,0.1)";
+        btn.style.background  = "rgba(255,102,0,0.08)";
         btn.style.borderColor = "rgba(255,102,0,0.4)";
-        btn.style.transform   = "translateX(0)";
       });
-
-      // Touch feedback
       btn.addEventListener("touchstart", () => {
         btn.style.background  = "rgba(255,102,0,0.2)";
-        btn.style.borderColor = "rgba(255,102,0,0.6)";
+        btn.style.borderColor = "rgba(255,102,0,0.7)";
       }, { passive: true });
       btn.addEventListener("touchend", () => {
         setTimeout(() => {
-          btn.style.background  = "rgba(255,102,0,0.1)";
+          btn.style.background  = "rgba(255,102,0,0.08)";
           btn.style.borderColor = "rgba(255,102,0,0.4)";
         }, 150);
       }, { passive: true });
 
+      btn.title = q.question;
       btn.textContent = q.question;
       btn.onclick = () => handleQuestionClick(q.id);
-      questionsDiv.appendChild(btn);
+      strip.appendChild(btn);
     });
 
-    container.appendChild(questionsDiv);
+    // Insert strip BEFORE the input bar (so input bar sits at the very bottom)
+    const inputBar = m.querySelector("#inputArea") || m.lastElementChild;
+    m.insertBefore(strip, inputBar);
   };
 
   // ── Render messages ──────────────────────
@@ -262,6 +320,9 @@ const ChatBot = (() => {
     const container = messagesEl();
     if (!container) return;
     container.innerHTML = "";
+
+    // Always sync question strip visibility
+    renderQuestionStrip();
 
     if (state.messages.length === 0 && state.showInitialQuestions) {
       renderInitialQuestions();
@@ -271,7 +332,6 @@ const ChatBot = (() => {
     const mob   = isMobile();
     const small = isSmallPhone();
 
-    // Responsive sizing tokens
     const iconSize   = small ? "22px" : mob ? "24px" : "26px";
     const iconFont   = small ? "11px" : mob ? "12px" : "13px";
     const bubbleFont = small ? "11px" : mob ? "12px" : "13px";
@@ -374,8 +434,6 @@ const ChatBot = (() => {
         bubble.textContent = msg.text;
       }
 
-      // User: bubble → icon (right side)
-      // Bot:  icon → bubble (left side)
       if (isUser) {
         row.appendChild(bubble);
         row.appendChild(icon);
@@ -417,7 +475,6 @@ const ChatBot = (() => {
   const open = () => {
     const m = modal();
     if (!isMobile()) {
-      // Desktop: floating widget
       state.pos = { x: window.innerWidth - 360, y: window.innerHeight - 560 };
       m.style.left         = state.pos.x + "px";
       m.style.top          = state.pos.y + "px";
@@ -426,29 +483,29 @@ const ChatBot = (() => {
       m.style.borderRadius = "";
       m.style.position     = "fixed";
     } else {
-      // Mobile / tablet: full screen
       m.style.width        = "100%";
       m.style.height       = "100%";
       m.style.left         = "0px";
       m.style.top          = "0px";
       m.style.borderRadius = "0px";
       m.style.position     = "fixed";
-      // Prevent background scroll
       document.body.style.overflow = "hidden";
     }
     m.style.display = "flex";
     toggleBtn().style.display = "none";
     renderMessages();
+    renderQuestionStrip();
   };
 
   const close = () => {
+    const existing = $("questionStrip");
+    if (existing) existing.remove();
     modal().style.display     = "none";
     toggleBtn().style.display = "flex";
-    // Restore scroll
     document.body.style.overflow = "";
   };
 
-  // ── Send text via WebSocket ──────────────────────
+  // ── Send text ──────────────────────
   const send = () => {
     if (state.isRecording) { stopRecording(); return; }
     const text = textInput().value.trim();
@@ -457,10 +514,8 @@ const ChatBot = (() => {
     state.messages.push({ id: Date.now(), type: "user", text });
     textInput().value  = "";
     state.isBotTyping  = true;
-    state.showInitialQuestions = false;
     renderMessages();
 
-    // Dismiss virtual keyboard on mobile after send
     if (isMobile()) textInput().blur();
 
     const autoResponse = getAutoResponse(text);
@@ -515,7 +570,6 @@ const ChatBot = (() => {
           id: Date.now(), type: "user",
           isVoice: true, audioUrl: url, duration: capturedDuration,
         });
-        state.showInitialQuestions = false;
         renderMessages();
 
         if (socket && socket.readyState === WebSocket.OPEN) {
@@ -625,7 +679,6 @@ const ChatBot = (() => {
     const header = $("chatHeader");
     if (!header) return;
 
-    // Mouse drag – desktop only
     header.addEventListener("mousedown", (e) => {
       if (isMobile()) return;
       if (e.target.closest("button")) return;
@@ -649,7 +702,6 @@ const ChatBot = (() => {
       header.style.cursor = "grab";
     });
 
-    // Touch drag – desktop tablets only (skipped on mobile)
     header.addEventListener("touchstart", (e) => {
       if (isMobile()) return;
       if (e.target.closest("button")) return;
@@ -669,7 +721,6 @@ const ChatBot = (() => {
 
     window.addEventListener("touchend", () => { state.dragging = false; });
 
-    // Resize handler – orientation change, keyboard appear/disappear
     window.addEventListener("resize", () => {
       const m = modal();
       if (m.style.display === "none") return;
@@ -689,11 +740,9 @@ const ChatBot = (() => {
         m.style.height = "520px";
       }
 
-      // Recalculate bubble sizes on resize / rotation
       renderMessages();
     });
 
-    // iOS Safari – shrink modal when virtual keyboard opens
     if ("visualViewport" in window) {
       window.visualViewport.addEventListener("resize", () => {
         const m = modal();
